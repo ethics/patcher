@@ -114,21 +114,26 @@ class Round(object):
         self.strip = 0
 
 def roundConf(h):
-    m={}
-    if h.has_key("options"):
+    m = {}
+    if "options" in h:
         m.update(h["options"])
-        m['name'] = '_'.join([h["heuristic"]]+[ "%s%s" % (i,j) for i,j in h["options"].iteritems()])
-    else: m['name'] = h["heuristic"]
-    m['apply'] = getattr(heuristics, h["heuristic"])
+        m['name'] = '_'.join([h["type"]] + ["%s%s" % (i, j) for i, j in h["options"].items()])
+    else:
+        m['name'] = h["type"]
+    m['apply'] = getattr(heuristics, h["type"])
     m['result'] = RoundResult()
-    RoundClass = type(str(h["heuristic"]), (Round,), m)
+    RoundClass = type(str(h["type"]), (Round,), m)
     return RoundClass()
 
 def loadConf(jsonConf):
-    ret = [ roundConf(h) for h in jsonConf if is_valid_heuristic(h["heuristic"]) ]
+    ret = []
+    for h in jsonConf:
+        if "type" in h and is_valid_heuristic(h["type"]):
+            # Only process configurations with valid heuristic types
+            ret.append(roundConf(h))
     return ret
 
-def adapt(patch, dir, confjson, resultsDir='.', debuglevel=None):
+def adapt(patch, dir, confjson, resultsDir='.', debuglevel='debug'):
     # patch: str
     # dir: str
     # confjson: json
