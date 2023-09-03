@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from cStringIO import StringIO
+from io import StringIO
 import sys
 
 class Capturing(list):

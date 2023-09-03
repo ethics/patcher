@@ -1,5 +1,5 @@
 """
- Copyright (c) 2017 IBM Corp.
+Copyright (c) 2017 IBM Corp.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,33 +39,32 @@ def file2str(filename):
         r = p.read()
     return r
 
-def runinDIR(command,DIR,stdin=None,env=None):
+def runinDIR(command, DIR, stdin=None, env=None):
     prevdir = os.getcwd()
     os.chdir(DIR)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, env=env)
-    (out, err) = proc.communicate(input=stdin)
+    (out, err) = proc.communicate(input=stdin.encode() if stdin else None)
     ret = proc.returncode
-    print '=' * 5
-    print "Running '%s' in '%s' (return code %s)" % (' '.join(command), os.path.basename(DIR), ret)
+    print('=' * 5)
+    print("Running '%s' in '%s' (return code %s)" % (' '.join(command), os.path.basename(DIR), ret))
     if out:
-        print '-' * 5, "stdout"
-        print truncate(out)
+        print('-' * 5, "stdout")
+        print(truncate(out.decode()))
     if err:
-        print '-' * 5, "stderr"
-        print truncate(err)
-    print '=' * 5
+        print('-' * 5, "stderr")
+        print(truncate(err.decode()))
+    print('=' * 5)
     os.chdir(prevdir)
     return ret
 
 def truncate(string):
-    '''truncate strings'''
     LENGTH = 40000
     if len(string) > LENGTH:
         string = "(truncated to %d chars)\r\n" % LENGTH + string[-LENGTH:]
     return string
 
 def build(dir,dist):
-    print "building %s in a %s env" % (os.path.basename(dir),dist)
+    print("building %s in a %s env" % (os.path.basename(dir),dist))
     env = os.environ.copy()
     env["DIST"] = dist
     return runinDIR(["pdebuild","--use-pdebuild-internal"], dir, env=env)
@@ -87,3 +86,4 @@ def groupByCVE(hunks):
             CVE.append(hc)
 
     return CVE
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
  Copyright (c) 2017 IBM Corp.
@@ -44,7 +44,7 @@ debug=False
 def startLog(build=None):
     log = Capturing()
     if debug:
-        print '>'*10
+        print ('>'*10)
     else:
         log.build = build
         log.__enter__()
@@ -153,8 +153,8 @@ def updateResult(result):
     result["log"] = []
 
     if debug:
-        print 'UPDATE:', result
-        print '<'*10
+        print ('UPDATE:', result)
+        print ('<'*10)
     else:
         outLog.__exit__()
         result["log"]= outLog
@@ -176,13 +176,13 @@ def run(buildConfig, srcDir=None):
         tmpDir = mkdtemp(dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'cache'))
         pkg = dget(buildConfig.pkgName, buildConfig.pkgVersion, tmpDir)
         if not pkg:
-            print "Error retriving %s (%s). Aborting." % (buildConfig.pkgName, buildConfig.pkgVersion)
+            print ("Error retriving %s (%s). Aborting." % (buildConfig.pkgName, buildConfig.pkgVersion))
             initialStatus = "error"
             pkg = '<None>'
 
         ORIGSRC = os.path.join(tmpDir, pkg)
 
-    print "Source %s (%s) in %s/" % (buildConfig.pkgName, buildConfig.pkgVersion, ORIGSRC)
+    print ("Source %s (%s) in %s/" % (buildConfig.pkgName, buildConfig.pkgVersion, ORIGSRC))
 
     #There is a single root
     SRCs2apply=[{"dir":ORIGSRC,"id":"0"}]
@@ -194,7 +194,7 @@ def run(buildConfig, srcDir=None):
         CVE = groupByCVE(buildConfig.hunks)
     except:
         initialStatus="error"
-        print format_exc()
+        print (format_exc())
 
     updateResult({"type":"initial","status":initialStatus, "id":"0"})
     if initialStatus == "error":
@@ -203,7 +203,7 @@ def run(buildConfig, srcDir=None):
     leafs = []
     for cve in CVE:
 
-        print "Adapting a patch for %s" % cve["name"]
+        print ("Adapting a patch for %s" % cve["name"])
         for SRC2apply in SRCs2apply:
             quiltname = generatePatchName(cve["name"],SRC2apply["dir"])
 
@@ -243,11 +243,11 @@ def fetch(rawfilter):
         build = Build(where=where)
         try:
             run(build)
-        except Exception, e:
+        except (Exception, e):
             updateBuildStatus(build, "error")
             import traceback
             outLog.__exit__()
-            print outLog
+            print (outLog)
             traceback.print_exc()
             raise e
 

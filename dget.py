@@ -1,49 +1,52 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 __version__ = "0.0.1"
 
 import sys
 import os
-from BeautifulSoup import BeautifulSoup
-from urllib2 import urlopen, HTTPError
+from bs4 import BeautifulSoup
+from urllib.request import urlopen, HTTPError
 from re import compile, escape
-from SOAPpy import SOAPProxy
+from zeep import Client
 from optparse import OptionParser
 from lib import runinDIR
-from urlparse import urljoin
+from urllib.parse import urljoin
 
 ca_path = '/etc/ssl/ca-debian'
 if os.path.isdir(ca_path):
     os.environ['SSL_CERT_DIR'] = ca_path
 
 def getVersions(soap_url, p):
-    return SOAPProxy(soap_url).versions(source=p)._asdict()
-
+    client = Client(soap_url)
+    response = client.service.versions(source=p)
+    return dict(response)
 
 def poolPath(pkg):
     ret = 'main/'
-    if pkg.startswith('lib'): ret+='lib' + pkg[3]
-    else: ret+= pkg[0]
-    return '%s/%s' % (ret,pkg)
+    if pkg.startswith('lib'):
+        ret += 'lib' + pkg[3]
+    else:
+        ret += pkg[0]
+    return '%s/%s' % (ret, pkg)
 
-
-def getLink(pkg,ver):
+def getLink(pkg, ver):
     dscpages = ["https://tracker.debian.org/pkg/%s", "https://packages.qa.debian.org/%s",
                 "http://security.debian.org/pool/updates/%s/"]
 
     for dscpage in dscpages:
         url = dscpage % pkg
-        if 'pool' in dscpage: url = dscpage % poolPath(pkg)
-        soup = BeautifulSoup(urlopen(url))
-        for link in soup.findAll('a', attrs={'href': compile(escape("%s_%s.dsc" % (pkg, ver)) + '$')}):
+        if 'pool' in dscpage:
+            url = dscpage % poolPath(pkg)
+        soup = BeautifulSoup(urlopen(url), 'html.parser')
+        for link in soup.find_all('a', href=compile(escape("%s_%s.dsc" % (pkg, ver)) + '$')):
             yield urljoin(url, link.get('href'))
 
-def dget(pkg,ver,where):
+def dget(pkg, ver, where):
 
     if sum(c.isdigit() for c in ver) == 0:
-        print "We need to find a version for %s" % ver
-        for d, v in getVersions('https://packages.qa.debian.org/cgi-bin/soap-alpha.cgi', pkg).iteritems():
+        print("We need to find a version for %s" % ver)
+        for d, v in getVersions('https://packages.qa.debian.org/cgi-bin/soap-alpha.cgi', pkg).items():
             if v == ver or d == ver:
                 print("%s_%s (%s) found!" % (pkg, v, d))
                 ver = v
@@ -52,13 +55,13 @@ def dget(pkg,ver,where):
             print("%s (%s) not found in PTS SOAP." % (pkg, ver))
             return None
 
-    ver = ver.split(':')[-1] # Remove de epoch
+    ver = ver.split(':')[-1]  # Remove the epoch
 
-    for link in getLink(pkg,ver):
+    for link in getLink(pkg, ver):
         try:
             conn = urlopen(link)
         except HTTPError as e:
-            print "%s: %s" %(link, e.code)
+            print("%s: %s" % (link, e.code))
             continue
         else:
             break
@@ -66,11 +69,11 @@ def dget(pkg,ver,where):
         print("I cannot find %s %s.dsc anywhere" % (pkg, ver))
         return None
 
-    print "fetching from %s" % link
+    print("fetching from %s" % link)
 
-    runinDIR(["/usr/bin/dget", "-x", "-u", link],where)
+    runinDIR(["/usr/bin/dget", "-x", "-u", link], where)
 
-    src = max([ os.path.join(where,d) for d in os.listdir(where)], key=os.path.getmtime)
+    src = max([os.path.join(where, d) for d in os.listdir(where)], key=os.path.getmtime)
     return src
 
 if __name__ == '__main__':
@@ -80,11 +83,13 @@ if __name__ == '__main__':
                        version="dget.py %s" % __version__)
     opt.add_option("-v", "--ver", metavar='VER', help="package name to fetch")
     opt.add_option("-p", "--pkg", metavar='PKG', help="version to fetch")
-    opt.add_option("-d", "--dir", metavar='DIR', help="where put the source code")
+    opt.add_option("-d", "--dir", metavar='DIR', help="where to put the source code")
     (options, args) = opt.parse_args()
 
-    if options.dir: wd = options.dir
-    else: wd = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.getenv('WORKING_DIR', 'cache'))
+    if options.dir:
+        wd = options.dir
+    else:
+        wd = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.getenv('WORKING_DIR', 'cache'))
 
     if not os.path.isdir(wd):
         opt.print_help()
@@ -94,4 +99,5 @@ if __name__ == '__main__':
         opt.print_help()
         sys.exit("ERROR: you need to give me a package and a version to download")
 
-    print "The source code is in %s" % dget(options.pkg,options.ver,wd)
+    print("The source code is in %s" % dget(options.pkg, options.ver, wd))
+
